@@ -1,0 +1,844 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  SITE_VISIT_SCHEDULED
+  SITE_VISITED
+  NEGOTIATION
+  BOOKING_IN_PROGRESS
+  BOOKED
+  LOST
+  FUTURE_PROSPECT
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PropertyType {
+  FLAT
+  PLOT
+  SHOP
+  OFFICE
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  LEAD_ASSIGNED
+  IN_DISCUSSION
+  FOLLOW_UP_ACTIVE
+  SITE_VISIT_SCHEDULED
+  PRICE_NEGOTIATION
+  HOLD
+  RESERVED
+  TOKEN_RECEIVED
+  BOOKING_IN_PROGRESS
+  BOOKED
+  SOLD
+  MANAGEMENT_BLOCKED
+  BLOCKED
+  CANCELLED
+}
+
+enum UnitLockAction {
+  DISCUSSION_STARTED
+  DISCUSSION_EXTENDED
+  DISCUSSION_RELEASED
+  DISCUSSION_EXPIRED
+  DISCUSSION_TRANSFERRED
+  LOCK_OVERRIDDEN
+  SITE_VISIT_SCHEDULED
+  RESERVED
+  BOOKING_STARTED
+  BOOKED
+}
+
+enum FollowUpType {
+  PHONE_CALL
+  WHATSAPP
+  EMAIL
+  OFFICE_MEETING
+  SITE_VISIT
+  VIDEO_CALL
+  OTHER
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum VisitStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum PaymentScheduleStatus {
+  PENDING
+  PAID
+  WAIVED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  UPI
+  CHEQUE
+  CARD
+  OTHER
+}
+
+enum CustomerDocumentType {
+  PAN
+  AADHAAR
+  AGREEMENT
+  RECEIPT
+  BROCHURE
+  OTHER
+}
+
+model User {
+  id                  String               @id @default(uuid()) @db.Uuid
+  email               String               @unique
+  recoveryEmail       String?              @unique
+  passwordHash        String
+  status              UserStatus           @default(ACTIVE)
+  forcePasswordChange Boolean              @default(true)
+  lastLoginAt         DateTime?
+  failedLoginCount    Int                  @default(0)
+  lockedUntil         DateTime?
+  employee            Employee?
+  userRoles           UserRole[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String?   @db.Uuid
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  link      String?
+  dedupeKey String?   @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model CompanyProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyName String
+  address     String?
+  phone       String?
+  email       String?
+  gstNumber   String?
+  updatedAt   DateTime @updatedAt
+}
+
+model SalesTarget {
+  id        String   @id @default(uuid()) @db.Uuid
+  month     DateTime @unique @db.Date
+  amount    Decimal  @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Department {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model LeadSource {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique
+  name        String
+  description String?
+  userRoles   UserRole[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Employee {
+  id                 String              @id @default(uuid()) @db.Uuid
+  userId             String              @unique @db.Uuid
+  employeeCode       String              @unique
+  fullName           String
+  phone              String              @db.VarChar(20)
+  department         String
+  designation        String
+  joiningDate        DateTime            @db.Date
+  managerId          String?             @db.Uuid
+  manager            Employee?           @relation("EmployeeManager", fields: [managerId], references: [id])
+  reports            Employee[]          @relation("EmployeeManager")
+  user               User                @relation(fields: [userId], references: [id])
+  assignedLeads      Lead[]              @relation("AssignedLead")
+  siteVisits         SiteVisit[]         @relation("SiteVisitExecutive")
+  attendance         Attendance[]
+  dailyTasks         DailyTask[]
+  leaveRequests      LeaveRequest[]
+  performanceMetrics PerformanceMetric[]
+  incentives         Incentive[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+
+  @@index([department])
+  @@index([managerId])
+}
+
+model Attendance {
+  id         String    @id @default(uuid()) @db.Uuid
+  employeeId String    @db.Uuid
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workDate   DateTime  @db.Date
+  checkInAt  DateTime
+  checkOutAt DateTime?
+  notes      String?   @db.VarChar(500)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([employeeId, workDate])
+  @@index([workDate, checkOutAt])
+}
+
+model DailyTask {
+  id         String   @id @default(uuid()) @db.Uuid
+  employeeId String   @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  title      String   @db.VarChar(240)
+  dueDate    DateTime @db.Date
+  priority   String   @default("MEDIUM") @db.VarChar(20)
+  status     String   @default("PENDING") @db.VarChar(20)
+  notes      String?  @db.VarChar(1000)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([employeeId, dueDate, status])
+}
+
+model LeaveRequest {
+  id           String    @id @default(uuid()) @db.Uuid
+  employeeId   String    @db.Uuid
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType    String    @db.VarChar(40)
+  startDate    DateTime  @db.Date
+  endDate      DateTime  @db.Date
+  reason       String    @db.VarChar(1000)
+  status       String    @default("PENDING") @db.VarChar(20)
+  reviewedById String?   @db.Uuid
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([employeeId, startDate, status])
+}
+
+model PerformanceMetric {
+  id         String   @id @default(uuid()) @db.Uuid
+  employeeId String   @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  period     String   @db.VarChar(20)
+  target     Decimal  @default(0) @db.Decimal(14, 2)
+  achieved   Decimal  @default(0) @db.Decimal(14, 2)
+  rating     Int?
+  notes      String?  @db.VarChar(1000)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, period])
+}
+
+model Incentive {
+  id         String   @id @default(uuid()) @db.Uuid
+  employeeId String   @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  period     String   @db.VarChar(20)
+  amount     Decimal  @db.Decimal(14, 2)
+  status     String   @default("PENDING") @db.VarChar(20)
+  notes      String?  @db.VarChar(1000)
+  milestone  String?  @db.VarChar(40)
+  eventKey   String?  @unique @db.VarChar(160)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([employeeId, period, status])
+}
+
+model Customer {
+  id              String                  @id @default(uuid()) @db.Uuid
+  referenceNumber String                  @unique
+  fullName        String
+  primaryPhone    String                  @db.VarChar(20)
+  email           String?
+  remarks         String?
+  familyDetails   String?
+  budgetMin       Decimal?                @db.Decimal(14, 2)
+  budgetMax       Decimal?                @db.Decimal(14, 2)
+  preferences     String?
+  leads           Lead[]
+  bookings        Booking[]
+  loans           Loan[]
+  documents       CustomerDocument[]
+  communications  CustomerCommunication[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  deletedAt       DateTime?
+
+  @@index([primaryPhone])
+  @@index([email])
+}
+
+model CustomerCommunication {
+  id          String   @id @default(uuid()) @db.Uuid
+  customerId  String   @db.Uuid
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  channel     String   @db.VarChar(30)
+  direction   String   @db.VarChar(20)
+  summary     String   @db.VarChar(2000)
+  occurredAt  DateTime @default(now())
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@index([customerId, occurredAt])
+}
+
+model CustomerDocument {
+  id           String                  @id @default(uuid()) @db.Uuid
+  customerId   String                  @db.Uuid
+  customer     Customer                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type         CustomerDocumentType
+  originalName String
+  storagePath  String                  @unique
+  mimeType     String
+  fileSize     Int
+  uploadedById String                  @db.Uuid
+  shares       CustomerDocumentShare[]
+  createdAt    DateTime                @default(now())
+  deletedAt    DateTime?
+
+  @@index([customerId, type])
+  @@index([uploadedById, createdAt])
+}
+
+model CustomerDocumentShare {
+  id          String           @id @default(uuid()) @db.Uuid
+  documentId  String           @db.Uuid
+  document    CustomerDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  token       String           @unique
+  expiresAt   DateTime
+  createdById String           @db.Uuid
+  revokedAt   DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([documentId, expiresAt])
+}
+
+model Lead {
+  id                 String         @id @default(uuid()) @db.Uuid
+  referenceNumber    String         @unique
+  customerId         String?        @db.Uuid
+  customer           Customer?      @relation(fields: [customerId], references: [id])
+  customerName       String
+  primaryPhone       String         @db.VarChar(20)
+  email              String?
+  source             String
+  assignedEmployeeId String?        @db.Uuid
+  assignedEmployee   Employee?      @relation("AssignedLead", fields: [assignedEmployeeId], references: [id])
+  status             LeadStatus     @default(NEW)
+  priority           LeadPriority   @default(MEDIUM)
+  nextFollowUpAt     DateTime?
+  activities         LeadActivity[]
+  callLogs           CallLog[]
+  followUps          FollowUp[]
+  siteVisits         SiteVisit[]
+  bookings           Booking[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime?
+
+  @@index([primaryPhone])
+  @@index([status, assignedEmployeeId])
+  @@index([nextFollowUpAt])
+}
+
+model CallLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  leadId        String   @db.Uuid
+  lead          Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  employeeId    String?  @db.Uuid
+  outcome       String   @db.VarChar(40)
+  notes         String?  @db.VarChar(1000)
+  recordingLink String?  @db.VarChar(500)
+  nextFollowUpAt DateTime?
+  calledAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([leadId, calledAt])
+  @@index([nextFollowUpAt])
+}
+
+model LeadActivity {
+  id        String   @id @default(uuid()) @db.Uuid
+  leadId    String   @db.Uuid
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  action    String
+  oldValues Json?
+  newValues Json?
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+model Project {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  code                  String                 @unique
+  name                  String
+  location              String
+  status                String
+  properties            Property[]
+  brokerCommissionRules BrokerCommissionRule[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  deletedAt             DateTime?
+}
+
+model Property {
+  id                  String            @id @default(uuid()) @db.Uuid
+  referenceNumber     String            @unique
+  projectId           String            @db.Uuid
+  project             Project           @relation(fields: [projectId], references: [id])
+  unitNumber          String
+  type                PropertyType
+  basePrice           Decimal           @db.Decimal(14, 2)
+  finalPrice          Decimal           @db.Decimal(14, 2)
+  status              PropertyStatus    @default(AVAILABLE)
+  dealingExecutiveId  String?           @db.Uuid
+  lockOwnerEmployeeId String?           @db.Uuid
+  lockLeadId          String?           @db.Uuid
+  lockCustomerName    String?
+  lockCustomerPhone   String?           @db.VarChar(20)
+  lockStartedAt       DateTime?
+  lockExpiresAt       DateTime?
+  bookings            Booking[]
+  lockHistory         UnitLockHistory[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  @@unique([projectId, unitNumber])
+  @@index([status, projectId])
+  @@index([dealingExecutiveId])
+  @@index([lockExpiresAt])
+}
+
+model UnitLockHistory {
+  id                 String          @id @default(uuid()) @db.Uuid
+  propertyId         String          @db.Uuid
+  property           Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  action             UnitLockAction
+  previousStatus     PropertyStatus?
+  newStatus          PropertyStatus
+  assignedEmployeeId String?         @db.Uuid
+  leadId             String?         @db.Uuid
+  customerName       String?
+  customerPhone      String?         @db.VarChar(20)
+  expiresAt          DateTime?
+  actorUserId        String?         @db.Uuid
+  reason             String?
+  createdAt          DateTime        @default(now())
+
+  @@index([propertyId, createdAt])
+  @@index([assignedEmployeeId, createdAt])
+  @@index([expiresAt])
+}
+
+model FollowUp {
+  id                 String         @id @default(uuid()) @db.Uuid
+  leadId             String         @db.Uuid
+  lead               Lead           @relation(fields: [leadId], references: [id])
+  assignedEmployeeId String?        @db.Uuid
+  type               FollowUpType
+  scheduledAt        DateTime
+  status             FollowUpStatus @default(SCHEDULED)
+  remarks            String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([scheduledAt, status])
+}
+
+model SiteVisit {
+  id                 String      @id @default(uuid()) @db.Uuid
+  leadId             String      @db.Uuid
+  lead               Lead        @relation(fields: [leadId], references: [id])
+  assignedEmployeeId String?     @db.Uuid
+  assignedEmployee   Employee?   @relation("SiteVisitExecutive", fields: [assignedEmployeeId], references: [id])
+  visitAt            DateTime
+  status             VisitStatus @default(SCHEDULED)
+  feedback           String?
+  checkedInAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([visitAt, status])
+}
+
+model Booking {
+  id                  String            @id @default(uuid()) @db.Uuid
+  referenceNumber     String            @unique
+  customerId          String            @db.Uuid
+  customer            Customer          @relation(fields: [customerId], references: [id])
+  leadId              String?           @db.Uuid
+  lead                Lead?             @relation(fields: [leadId], references: [id])
+  propertyId          String            @db.Uuid
+  property            Property          @relation(fields: [propertyId], references: [id])
+  bookingDate         DateTime          @db.Date
+  bookingAmount       Decimal           @db.Decimal(14, 2)
+  tokenPaidAmount     Decimal           @default(0) @db.Decimal(14, 2)
+  isOnlineBooking     Boolean           @default(false)
+  totalPropertyAmount Decimal           @db.Decimal(14, 2)
+  paymentStatus       PaymentStatus     @default(PENDING)
+  status              BookingStatus     @default(DRAFT)
+  payments            Payment[]
+  paymentSchedules    PaymentSchedule[]
+  documents           BookingDocument[]
+  brokerPayouts       BrokerPayout[]
+  loans               Loan[]
+  cancellationReason  String?           @db.VarChar(1000)
+  cancelledAt         DateTime?
+  cancelledById       String?           @db.Uuid
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([propertyId, status])
+}
+
+model BookingDocument {
+  id              String    @id @default(uuid()) @db.Uuid
+  bookingId       String    @db.Uuid
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  documentType    String    @db.VarChar(40)
+  originalName    String    @db.VarChar(180)
+  storagePath     String
+  mimeType        String    @db.VarChar(120)
+  fileSize        Int
+  uploadedById    String    @db.Uuid
+  signatureStatus String    @default("PENDING") @db.VarChar(30)
+  signedByName    String?   @db.VarChar(160)
+  signedAt        DateTime?
+  shareToken      String?   @unique @db.Uuid
+  shareExpiresAt  DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  bookingId     String        @db.Uuid
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+  amount        Decimal       @db.Decimal(14, 2)
+  paymentDate   DateTime      @db.Date
+  method        PaymentMethod
+  receiptNumber String        @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model PaymentSchedule {
+  id               String                @id @default(uuid()) @db.Uuid
+  bookingId        String                @db.Uuid
+  booking          Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  installmentName  String                @db.VarChar(120)
+  dueDate          DateTime              @db.Date
+  amount           Decimal               @db.Decimal(14, 2)
+  gstRate          Decimal               @default(0) @db.Decimal(5, 2)
+  lateInterestRate Decimal               @default(0) @db.Decimal(5, 2)
+  status           PaymentScheduleStatus @default(PENDING)
+  notes            String?               @db.VarChar(1000)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([bookingId, dueDate, status])
+}
+
+model Loan {
+  id                String             @id @default(uuid()) @db.Uuid
+  referenceNumber   String             @unique
+  customerId        String             @db.Uuid
+  customer          Customer           @relation(fields: [customerId], references: [id])
+  bookingId         String?            @db.Uuid
+  booking           Booking?           @relation(fields: [bookingId], references: [id])
+  bankName          String
+  branchName        String?
+  loanAccountNumber String?
+  sanctionedAmount  Decimal            @db.Decimal(14, 2)
+  disbursedAmount   Decimal            @default(0) @db.Decimal(14, 2)
+  interestRate      Decimal            @default(0) @db.Decimal(6, 3)
+  tenureMonths      Int?
+  emiAmount         Decimal            @default(0) @db.Decimal(14, 2)
+  status            String             @default("APPLIED") @db.VarChar(30)
+  appliedAt         DateTime           @default(now()) @db.Date
+  sanctionedAt      DateTime?          @db.Date
+  notes             String?            @db.VarChar(1000)
+  disbursements     LoanDisbursement[]
+  emis              LoanEmi[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([customerId, status])
+  @@index([bookingId])
+}
+
+model LoanDisbursement {
+  id          String   @id @default(uuid()) @db.Uuid
+  loanId      String   @db.Uuid
+  loan        Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(14, 2)
+  disbursedAt DateTime @db.Date
+  reference   String?  @db.VarChar(120)
+  notes       String?  @db.VarChar(1000)
+  createdAt   DateTime @default(now())
+
+  @@index([loanId, disbursedAt])
+}
+
+model LoanEmi {
+  id          String    @id @default(uuid()) @db.Uuid
+  loanId      String    @db.Uuid
+  loan        Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installment Int
+  dueDate     DateTime  @db.Date
+  amount      Decimal   @db.Decimal(14, 2)
+  paidAmount  Decimal   @default(0) @db.Decimal(14, 2)
+  paidAt      DateTime?
+  status      String    @default("PENDING") @db.VarChar(20)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([loanId, installment])
+  @@index([loanId, dueDate, status])
+}
+
+model Expense {
+  id              String    @id @default(uuid()) @db.Uuid
+  referenceNo     String    @unique
+  category        String    @db.VarChar(30)
+  description     String    @db.VarChar(500)
+  amount          Decimal   @db.Decimal(14, 2)
+  expenseDate     DateTime  @db.Date
+  vendorName      String?   @db.VarChar(160)
+  paymentMode     String?   @db.VarChar(40)
+  status          String    @default("PENDING") @db.VarChar(20)
+  requestedById   String    @db.Uuid
+  approvedById    String?   @db.Uuid
+  approvedAt      DateTime?
+  rejectionReason String?   @db.VarChar(500)
+  receiptNote     String?   @db.VarChar(500)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([category, status, expenseDate])
+}
+
+model ApprovalRequest {
+  id            String    @id @default(uuid()) @db.Uuid
+  referenceNo   String    @unique
+  type          String    @db.VarChar(40)
+  title         String    @db.VarChar(200)
+  details       String?   @db.VarChar(1000)
+  amount        Decimal?  @db.Decimal(14, 2)
+  entityType    String?   @db.VarChar(50)
+  entityId      String?   @db.Uuid
+  status        String    @default("PENDING") @db.VarChar(20)
+  requestedById String    @db.Uuid
+  reviewedById  String?   @db.Uuid
+  reviewedAt    DateTime?
+  reviewNote    String?   @db.VarChar(1000)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([type, status, createdAt])
+}
+
+model Broker {
+  id              String                 @id @default(uuid()) @db.Uuid
+  code            String                 @unique
+  fullName        String
+  companyName     String?
+  phone           String                 @unique @db.VarChar(20)
+  email           String?                @unique
+  reraNumber      String?
+  panNumber       String?
+  address         String?
+  status          String                 @default("ACTIVE") @db.VarChar(20)
+  commissionRules BrokerCommissionRule[]
+  payouts         BrokerPayout[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  deletedAt       DateTime?
+
+  @@index([status, createdAt])
+}
+
+model BrokerCommissionRule {
+  id         String    @id @default(uuid()) @db.Uuid
+  brokerId   String    @db.Uuid
+  broker     Broker    @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+  projectId  String?   @db.Uuid
+  project    Project?  @relation(fields: [projectId], references: [id])
+  rateType   String    @default("PERCENTAGE") @db.VarChar(20)
+  rate       Decimal   @db.Decimal(8, 2)
+  notes      String?   @db.VarChar(1000)
+  activeFrom DateTime  @default(now()) @db.Date
+  activeTo   DateTime? @db.Date
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([brokerId, activeFrom])
+}
+
+model BrokerPayout {
+  id        String    @id @default(uuid()) @db.Uuid
+  brokerId  String    @db.Uuid
+  broker    Broker    @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+  bookingId String?   @db.Uuid
+  booking   Booking?  @relation(fields: [bookingId], references: [id])
+  amount    Decimal   @db.Decimal(14, 2)
+  status    String    @default("PENDING") @db.VarChar(20)
+  paidAt    DateTime?
+  reference String?   @db.VarChar(120)
+  notes     String?   @db.VarChar(1000)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([brokerId, status, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model LoginAttempt {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String
+  ipAddress  String?
+  successful Boolean
+  createdAt  DateTime @default(now())
+
+  @@index([email, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?  @db.Uuid
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+}

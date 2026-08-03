@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '../lib/prisma.js';
+import { authenticate, type AuthRequest } from '../middleware/auth.js';
+import { AppError } from '../utils/errors.js';
+export const followUpRouter=Router();
+const schema=z.object({leadId:z.string().uuid(),type:z.enum(['PHONE_CALL','WHATSAPP','EMAIL','OFFICE_MEETING','SITE_VISIT','VIDEO_CALL','OTHER']),scheduledAt:z.coerce.date(),remarks:z.string().trim().max(2000).optional()});
+followUpRouter.use(authenticate);
+followUpRouter.get('/',async(req:AuthRequest,res,next)=>{try{const employee=await prisma.employee.findUnique({where:{userId:req.auth!.userId}});const data=await prisma.followUp.findMany({where:req.auth!.roles.includes('SALES_EXECUTIVE')?{assignedEmployeeId:employee?.id}:{},include:{lead:true},orderBy:{scheduledAt:'asc'}});res.json({success:true,data})}catch(error){next(error)}});
+followUpRouter.post('/',async(req:AuthRequest,res,next)=>{try{const input=schema.parse(req.body);const lead=await prisma.lead.findFirst({where:{id:input.leadId,deletedAt:null}});if(!lead)throw new AppError(404,'LEAD_NOT_FOUND','Lead not found');const employee=await prisma.employee.findUnique({where:{userId:req.auth!.userId}});const data=await prisma.$transaction(async tx=>{const created=await tx.followUp.create({data:{leadId:input.leadId,assignedEmployeeId:employee?.id,type:input.type,scheduledAt:input.scheduledAt,remarks:input.remarks}});await tx.leadActivity.create({data:{leadId:input.leadId,action:'FOLLOW_UP_SCHEDULED'}});if(employee?.userId)await tx.notification.upsert({where:{dedupeKey:`follow-up-due-${created.id}`},update:{},create:{dedupeKey:`follow-up-due-${created.id}`,userId:employee.userId,type:'FOLLOW_UP_DUE',title:'Follow-up scheduled',message:`Follow up with ${lead.customerName} is scheduled for ${input.scheduledAt.toLocaleString()}.`,link:'/follow-ups'}});return created});res.status(201).json({success:true,data})}catch(error){next(error)}});

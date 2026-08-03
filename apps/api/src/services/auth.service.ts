@@ -1,0 +1,14 @@
+import bcrypt from 'bcrypt';
+import { prisma } from '../lib/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { env } from '../config/env.js';
+import { hashOpaqueToken, newOpaqueToken, signAccessToken } from '../utils/tokens.js';
+const MAX_FAILURES = 5;
+async function profile(userId: string) { const user = await prisma.user.findUnique({ where:{id:userId}, include:{ userRoles:{include:{role:true}}, employee:true } }); if (!user) throw new AppError(401,'UNAUTHENTICATED','Account no longer exists'); return user; }
+export async function login(email: string, password: string, ipAddress?: string) {
+ const user = await prisma.user.findUnique({where:{email}}); const now = new Date();
+ if (!user || user.status !== 'ACTIVE' || (user.lockedUntil && user.lockedUntil > now) || !(await bcrypt.compare(password,user.passwordHash))) { if (user) await prisma.user.update({where:{id:user.id},data:{failedLoginCount:{increment:1}, lockedUntil:user.failedLoginCount + 1 >= MAX_FAILURES ? new Date(now.getTime()+15*60_000) : undefined}}); await prisma.loginAttempt.create({data:{email,ipAddress,successful:false}}); throw new AppError(401,'INVALID_CREDENTIALS','Invalid email or password'); }
+ const token = newOpaqueToken(); const tokenHash = hashOpaqueToken(token); const roles=(await profile(user.id)).userRoles.map(x=>x.role.code); await prisma.$transaction([prisma.user.update({where:{id:user.id},data:{failedLoginCount:0,lockedUntil:null,lastLoginAt:now}}),prisma.refreshToken.create({data:{userId:user.id,tokenHash,expiresAt:new Date(now.getTime()+env.REFRESH_TOKEN_DAYS*86400_000)}}),prisma.loginAttempt.create({data:{email,ipAddress,successful:true}}),prisma.auditLog.create({data:{userId:user.id,action:'LOGIN',entityType:'USER',entityId:user.id,ipAddress}})]); return { accessToken:await signAccessToken({sub:user.id,roles}), refreshToken:token, user:await profile(user.id) };
+}
+export async function rotate(refreshToken?: string) { if (!refreshToken) throw new AppError(401,'INVALID_REFRESH_TOKEN','Refresh token is invalid'); const current = await prisma.refreshToken.findUnique({where:{tokenHash:hashOpaqueToken(refreshToken)}}); if (!current || current.revokedAt || current.expiresAt < new Date()) throw new AppError(401,'INVALID_REFRESH_TOKEN','Refresh token is invalid'); const next = newOpaqueToken(); await prisma.$transaction([prisma.refreshToken.update({where:{id:current.id},data:{revokedAt:new Date()}}),prisma.refreshToken.create({data:{userId:current.userId,tokenHash:hashOpaqueToken(next),expiresAt:new Date(Date.now()+env.REFRESH_TOKEN_DAYS*86400_000)}})]); const user=await profile(current.userId); return {accessToken:await signAccessToken({sub:user.id,roles:user.userRoles.map(x=>x.role.code)}),refreshToken:next,user}; }
+export async function logout(refreshToken?: string) { if (refreshToken) await prisma.refreshToken.updateMany({where:{tokenHash:hashOpaqueToken(refreshToken),revokedAt:null},data:{revokedAt:new Date()}}); }

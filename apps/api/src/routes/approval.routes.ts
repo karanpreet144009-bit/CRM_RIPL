@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '../lib/prisma.js';
+import { authenticate, authorize, type AuthRequest } from '../middleware/auth.js';
+export const approvalRouter = Router();
+const requestInput=z.object({type:z.enum(['DISCOUNT','CANCELLATION','REFUND','PRICE_CHANGE']),title:z.string().trim().min(3).max(200),details:z.string().trim().max(1000).optional().nullable(),amount:z.coerce.number().min(0).optional().nullable(),entityType:z.string().trim().max(50).optional().nullable(),entityId:z.string().uuid().optional().nullable()});
+approvalRouter.use(authenticate);
+approvalRouter.get('/',async(_req,res,next)=>{try{const items=await prisma.approvalRequest.findMany({orderBy:{createdAt:'desc'},take:300});res.json({success:true,data:items});}catch(error){next(error)}});
+approvalRouter.post('/',async(req:AuthRequest,res,next)=>{try{const input=requestInput.parse(req.body);const count=await prisma.approvalRequest.count();const item=await prisma.approvalRequest.create({data:{...input,referenceNo:`APR-${String(count+1).padStart(5,'0')}`,requestedById:req.auth!.userId}});await prisma.auditLog.create({data:{userId:req.auth!.userId,action:'CREATE',entityType:'APPROVAL_REQUEST',entityId:item.id,newValues:input}});res.status(201).json({success:true,data:item});}catch(error){next(error)}});
+approvalRouter.patch('/:id/review',authorize('ADMINISTRATOR','MANAGER'),async(req:AuthRequest,res,next)=>{try{const id=z.string().uuid().parse(req.params.id);const input=z.object({status:z.enum(['APPROVED','REJECTED']),reviewNote:z.string().trim().max(1000).optional().nullable()}).parse(req.body);const item=await prisma.approvalRequest.update({where:{id},data:{...input,reviewedById:req.auth!.userId,reviewedAt:new Date()}});await prisma.auditLog.create({data:{userId:req.auth!.userId,action:'UPDATE',entityType:'APPROVAL_REQUEST',entityId:id,newValues:input}});res.json({success:true,data:item});}catch(error){next(error)}});

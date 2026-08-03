@@ -1,0 +1,31 @@
+{
+  "name": "rrpl-housing-group-erp",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @rrpl/api & npm run dev -w @rrpl/web",
+    "build": "npm run build --workspaces",
+    "postinstall": "npm run prisma:generate --workspace=@rrpl/api",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "format": "prettier --write .",
+    "db:generate": "npm run prisma:generate -w @rrpl/api",
+    "db:migrate": "npm run prisma:migrate -w @rrpl/api",
+    "db:seed": "npm run prisma:seed -w @rrpl/api"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "prettier": "^3.5.3"
+  },
+  "engines": {
+    "node": ">=22.14.0",
+    "npm": ">=10.9.2"
+  }
+}

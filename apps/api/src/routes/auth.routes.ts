@@ -1,0 +1,2 @@
+import { Router } from 'express'; import rateLimit from 'express-rate-limit'; import * as controller from '../controllers/auth.controller.js';
+export const authRouter=Router(); const loginLimit=rateLimit({windowMs:15*60_000,limit:10,standardHeaders:true,legacyHeaders:false,message:{success:false,error:{code:'RATE_LIMITED',message:'Too many login attempts'}}}); authRouter.post('/login',loginLimit,controller.login); authRouter.post('/refresh',controller.refresh); authRouter.post('/logout',controller.logout);
