@@ -15,6 +15,12 @@
     },
     "api/v1/[...path].js": {
       "maxDuration": 60
+    },
+    "api/v1/[resource].js": {
+      "maxDuration": 60
+    },
+    "api/v1/[resource]/[...path].js": {
+      "maxDuration": 60
     }
   }
 }
