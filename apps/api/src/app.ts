@@ -22,7 +22,7 @@ app.set('trust proxy', 1); app.disable('x-powered-by'); app.disable('etag');
 const allowedOfficeIps = env.OFFICE_ALLOWED_IPS.split(',').map((ip) => ip.trim()).filter(Boolean);
 app.use((req, res, next) => { const ip = (req.ip || '').replace(/^::ffff:/, ''); if (allowedOfficeIps.length && !allowedOfficeIps.includes(ip) && ip !== '127.0.0.1' && ip !== '::1') return res.status(403).json({ success: false, error: { code: 'IP_RESTRICTED', message: 'This office network is not permitted to access the ERP.' } }); next(); });
 app.use((req, res, next) => { res.setHeader('x-request-id', req.headers['x-request-id']?.toString() ?? randomUUID()); next(); });
-app.use(pinoHttp({ redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers.set-cookie'] }));
+app.use(pinoHttp({ redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers.set-cookie', 'req.headers.x-vercel-oidc-token', 'req.headers.x-vercel-proxy-signature', 'req.headers.forwarded'] }));
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' }, hsts: env.NODE_ENV === 'production' ? { maxAge: 31_536_000, includeSubDomains: true } : false }));
 app.use(cors({ origin: (origin, callback) => callback(null, allowedOrigin(origin)), credentials: true, methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'] }));
 app.use(rateLimit({ windowMs: 15 * 60_000, limit: 10_000, standardHeaders: true, legacyHeaders: false, skip: req => req.path === '/health', message: { success: false, error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } } }));
