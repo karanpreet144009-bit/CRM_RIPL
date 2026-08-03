@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --include=dev",
   "buildCommand": "npm run prisma:generate --workspace=@rrpl/api && npm run build --workspace=@rrpl/api && npm run build --workspace=@rrpl/web",
   "outputDirectory": "apps/web/dist",
   "rewrites": [
