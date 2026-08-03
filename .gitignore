@@ -11,3 +11,6 @@ backups/
 certs/
 *.log
 !.env.example
+
+.vercel
+.env*
