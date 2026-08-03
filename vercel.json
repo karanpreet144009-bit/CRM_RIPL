@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run prisma:generate --workspace=@rrpl/api && npm run build --workspace=@rrpl/api && npm run build --workspace=@rrpl/web",
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "functions": {
+    "api/[...path].ts": {
+      "maxDuration": 60
+    }
+  }
+}
