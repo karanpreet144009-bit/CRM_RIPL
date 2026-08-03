@@ -18,6 +18,15 @@
     },
     "api/v1/[resource]/[...path].js": {
       "maxDuration": 60
+    },
+    "api/v1/attendance/me/check-in.js": {
+      "maxDuration": 60
+    },
+    "api/v1/attendance/me/check-out.js": {
+      "maxDuration": 60
+    },
+    "api/v1/attendance/me/today.js": {
+      "maxDuration": 60
     }
   }
 }
