@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, CreditCard, Plus } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
+import { CalendarDays, CreditCard, Download, Plus } from 'lucide-react';
 import { api } from '../lib/api';
 
 type Booking = {
@@ -135,6 +137,62 @@ export function PaymentsPage() {
       `<h1>RIPL</h1><h2>Payment Receipt</h2><hr/><p><b>Receipt:</b> ${p.receiptNumber}</p><p><b>Customer:</b> ${p.booking.customer.fullName}</p><p><b>Unit:</b> ${p.booking.property.project.name} · ${p.booking.property.unitNumber}</p><p><b>Amount received:</b> ${money(p.amount)}</p><p><b>Mode:</b> ${p.method.replaceAll('_', ' ')}</p><p><b>Date:</b> ${new Date(p.paymentDate).toLocaleDateString('en-IN')}</p><br/><p>Computer-generated receipt.</p><script>window.print()</script>`,
     );
     page.document.close();
+  };
+  const downloadReceiptPdf = async (p: Payment) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const receiptDate = new Date(p.paymentDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+    const amountReceived = money(p.amount);
+    const verificationText = `RIPL payment receipt|${p.receiptNumber}|${p.booking.referenceNumber}|${amountReceived}|${receiptDate}`;
+    const qrCode = await QRCode.toDataURL(verificationText, { width: 320, margin: 1, color: { dark: '#0f2f4f', light: '#ffffff' } });
+
+    doc.setFillColor(15, 47, 79);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(212, 166, 50);
+    doc.setFontSize(11);
+    doc.text('RIPL', 18, 16);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text('PAYMENT RECEIPT', 18, 29);
+    doc.setTextColor(15, 47, 79);
+    doc.setFontSize(10);
+    doc.text(`Receipt no.: ${p.receiptNumber}`, 18, 54);
+    doc.text(`Payment date: ${receiptDate}`, 18, 61);
+
+    doc.setDrawColor(218, 226, 235);
+    doc.roundedRect(18, 72, 174, 76, 3, 3, 'S');
+    doc.setFontSize(10);
+    doc.setTextColor(86, 105, 129);
+    doc.text('RECEIVED FROM', 25, 85);
+    doc.setFontSize(15);
+    doc.setTextColor(15, 47, 79);
+    doc.text(p.booking.customer.fullName, 25, 96);
+    doc.setFontSize(10);
+    doc.setTextColor(86, 105, 129);
+    doc.text('BOOKING / UNIT', 25, 112);
+    doc.setTextColor(15, 47, 79);
+    doc.text(`${p.booking.referenceNumber}  |  ${p.booking.property.project.name} - ${p.booking.property.unitNumber}`, 25, 122);
+    doc.setTextColor(86, 105, 129);
+    doc.text('PAYMENT MODE', 25, 136);
+    doc.setTextColor(15, 47, 79);
+    doc.text(p.method.replaceAll('_', ' '), 82, 136);
+
+    doc.setFillColor(245, 249, 252);
+    doc.roundedRect(18, 162, 174, 35, 3, 3, 'F');
+    doc.setTextColor(86, 105, 129);
+    doc.setFontSize(11);
+    doc.text('AMOUNT RECEIVED', 25, 177);
+    doc.setTextColor(15, 47, 79);
+    doc.setFontSize(23);
+    doc.text(amountReceived, 25, 189);
+    doc.addImage(qrCode, 'PNG', 151, 164, 32, 32);
+
+    doc.setDrawColor(212, 166, 50);
+    doc.line(18, 215, 192, 215);
+    doc.setTextColor(86, 105, 129);
+    doc.setFontSize(9);
+    doc.text('Computer-generated receipt. Scan the QR code to view receipt verification data.', 18, 225);
+    doc.text('Thank you for choosing RIPL.', 18, 233);
+    doc.save(`${p.receiptNumber}-RIPL-payment-receipt.pdf`);
   };
   const field = (key: keyof typeof schedule, label: string, type = 'text') => (
     <label className="text-sm font-medium">
@@ -397,9 +455,7 @@ export function PaymentsPage() {
                   </td>
                   <td className="p-4">{money(p.amount)}</td>
                   <td className="p-4">
-                    <button onClick={() => printReceipt(p)} className="rounded border px-3 py-1 text-xs">
-                      Print receipt
-                    </button>
+                    <div className="flex gap-2"><button onClick={() => void downloadReceiptPdf(p)} className="rounded bg-navy px-3 py-1 text-xs text-white"><Download className="mr-1 inline" size={13} />Download PDF</button><button onClick={() => printReceipt(p)} className="rounded border px-3 py-1 text-xs">Print receipt</button></div>
                   </td>
                 </tr>
               ))}
