@@ -39,6 +39,12 @@ customerDocumentRouter.get('/shared/:token', async (req, res, next) => {
 });
 
 customerDocumentRouter.use(authenticate);
+customerDocumentRouter.get('/registry', async (_req, res, next) => {
+  try {
+    const data = await prisma.customerDocument.findMany({ where: { deletedAt: null }, include: { customer: { select: { fullName: true, referenceNumber: true } } }, orderBy: { createdAt: 'desc' }, take: 300 });
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+});
 customerDocumentRouter.get('/', async (req, res, next) => {
   try {
     const customerId = z.string().uuid().parse(req.query.customerId);
