@@ -28,7 +28,7 @@ const schema = z.object({
   projectCode: z.string().trim().toUpperCase().min(2).max(20),
   location: z.string().trim().max(80).optional(),
   unitNumber: z.string().trim().min(1).max(30),
-  type: z.enum(['FLAT', 'BHK_1', 'BHK_2', 'BHK_3', 'BHK_4', 'SHOP', 'OFFICE']),
+  type: z.enum(['BHK_2', 'BHK_3']),
   basePrice: z.coerce.number().positive(),
   finalPrice: z.coerce.number().positive(),
   status: propertyStatus.default('AVAILABLE'),
@@ -43,7 +43,7 @@ const discussionSchema = z.object({
 const reasonSchema = z.object({ reason: z.string().trim().min(3).max(500) });
 const statusUpdateSchema = z.object({ status: propertyStatus, customerName: z.string().trim().min(2).max(120).optional(), customerPhone: z.string().trim().min(8).max(20).optional() });
 const talkCustomerSchema = z.object({ customerName: z.string().trim().min(2).max(120).nullable(), customerPhone: z.string().trim().min(8).max(20).nullable().optional() });
-const updateSchema = z.object({ projectName: z.string().trim().min(2).optional(), projectCode: z.string().trim().toUpperCase().min(2).max(20).optional(), location: z.string().trim().max(80).optional(), unitNumber: z.string().trim().min(1).max(30).optional(), type: z.enum(['FLAT', 'BHK_1', 'BHK_2', 'BHK_3', 'BHK_4', 'SHOP', 'OFFICE']).optional(), basePrice: z.coerce.number().positive().optional(), finalPrice: z.coerce.number().positive().optional(), dealingExecutiveId: z.string().uuid().nullable().optional() }).refine((value) => Object.keys(value).length > 0, 'At least one field is required');
+const updateSchema = z.object({ projectName: z.string().trim().min(2).optional(), projectCode: z.string().trim().toUpperCase().min(2).max(20).optional(), location: z.string().trim().max(80).optional(), unitNumber: z.string().trim().min(1).max(30).optional(), type: z.enum(['BHK_2', 'BHK_3']).optional(), basePrice: z.coerce.number().positive().optional(), finalPrice: z.coerce.number().positive().optional(), dealingExecutiveId: z.string().uuid().nullable().optional() }).refine((value) => Object.keys(value).length > 0, 'At least one field is required');
 const transferSchema = z.object({
   employeeId: z.string().uuid(),
   reason: z.string().trim().min(3).max(500),
