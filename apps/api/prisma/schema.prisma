@@ -720,6 +720,9 @@ model Expense {
   approvedAt      DateTime?
   rejectionReason String?   @db.VarChar(500)
   receiptNote     String?   @db.VarChar(500)
+  receiptFileName String?   @db.VarChar(180)
+  receiptFileMimeType String? @db.VarChar(100)
+  receiptFileData Bytes?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
