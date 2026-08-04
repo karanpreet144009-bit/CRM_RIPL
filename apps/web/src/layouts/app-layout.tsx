@@ -18,6 +18,7 @@ import {
   Settings,
   Upload,
   Users,
+  Plane,
 } from 'lucide-react';
 import { useAuth } from '../contexts/auth-context';
 
@@ -27,6 +28,7 @@ const workspaceLinks: LinkItem[] = [
   ['/calculator', Calculator, 'Calculator'],
   ['/sales-dashboard', BarChart3, 'Sales dashboard'],
   ['/attendance', Clock3, 'Attendance'],
+  ['/leave', Plane, 'Leave'],
   ['/leads', Users, 'Leads'],
   ['/customers', Users, 'Customers'],
   ['/properties', Building2, 'Properties'],
@@ -88,7 +90,7 @@ export function AppLayout() {
     .map((role) => roleNames[role] ?? role.replaceAll('_', ' ').toLowerCase())
     .join(' · ');
   const visibleWorkspaceLinks = isAdministrator
-    ? workspaceLinks.filter(([path]) => path !== '/attendance')
+    ? workspaceLinks.filter(([path]) => path !== '/attendance' && path !== '/leave')
     : workspaceLinks;
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">

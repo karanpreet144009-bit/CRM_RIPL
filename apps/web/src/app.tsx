@@ -31,6 +31,7 @@ import { ExpensesPage } from './pages/expenses-page';
 import { ApprovalsPage } from './pages/approvals-page';
 import { AiChatbotPage } from './pages/ai-chatbot-page';
 import { CalculatorPage } from './pages/calculator-page';
+import { LeavePage } from './pages/leave-page';
 function Protected() {
   const { user } = useAuth();
   return user ? <AppLayout /> : <Navigate to="/login" replace />;
@@ -79,6 +80,7 @@ export function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/ai-chatbot" element={<AiChatbotPage />} />
         <Route path="/calculator" element={<CalculatorPage />} />
+        <Route path="/leave" element={<EmployeeAttendanceOnly><LeavePage /></EmployeeAttendanceOnly>} />
         <Route path="/exports" element={<ExportsPage />} />
         <Route
           path="/imports"
