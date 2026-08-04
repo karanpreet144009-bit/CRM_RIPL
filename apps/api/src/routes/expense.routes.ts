@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize, type AuthRequest } from '../middleware/auth.js';
 export const expenseRouter = Router();
-const input = z.object({ category: z.enum(['MARKETING', 'SITE', 'OFFICE', 'OTHER']), description: z.string().trim().min(3).max(500), amount: z.coerce.number().positive(), expenseDate: z.coerce.date(), vendorName: z.string().trim().max(160).optional().nullable(), paymentMode: z.string().trim().max(40).optional().nullable(), receiptNote: z.string().trim().max(500).optional().nullable() });
+const input = z.object({ category: z.enum(['MARKETING', 'SITE', 'OFFICE', 'TRAVEL', 'SALARY_PAYROLL', 'UTILITIES', 'MAINTENANCE', 'LEGAL_COMPLIANCE', 'BROKERAGE', 'TAX_GST', 'IT_SOFTWARE', 'OTHER']), description: z.string().trim().min(3).max(500), amount: z.coerce.number().positive(), expenseDate: z.coerce.date(), vendorName: z.string().trim().max(160).optional().nullable(), paymentMode: z.string().trim().max(40).optional().nullable(), receiptNote: z.string().trim().max(500).optional().nullable() });
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 4 * 1024 * 1024, files: 1 }, fileFilter: (_req, file, callback) => callback(null, file.mimetype === 'application/pdf') });
 expenseRouter.use(authenticate);
 expenseRouter.use(authorize('ADMINISTRATOR', 'MANAGER', 'ACCOUNTANT', 'ACCOUNTS_MANAGER'));
