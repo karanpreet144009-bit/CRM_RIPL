@@ -37,11 +37,11 @@ function Protected() {
 }
 function AdminOnly({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  return user?.roles.includes('ADMINISTRATOR') ? children : <Navigate to="/" replace />;
+  return user?.roles.some((role) => ['ADMINISTRATOR', 'ADMIN'].includes(role)) ? children : <Navigate to="/" replace />;
 }
 function EmployeeAttendanceOnly({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  return !user?.roles.includes('ADMINISTRATOR') ? children : <Navigate to="/" replace />;
+  return !user?.roles.some((role) => ['ADMINISTRATOR', 'ADMIN'].includes(role)) ? children : <Navigate to="/" replace />;
 }
 export function App() {
   return (

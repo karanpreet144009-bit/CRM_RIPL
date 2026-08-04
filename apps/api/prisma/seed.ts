@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const roles = [
-  ['SUPER_ADMIN', 'Super Admin'], ['DIRECTOR', 'Director'], ['ADMIN', 'Admin'], ['SALES_MANAGER', 'Sales Manager'], ['SALES_EXECUTIVE', 'Sales Executive'], ['CRM_EXECUTIVE', 'CRM Executive'], ['MARKETING_MANAGER', 'Marketing Manager'], ['ACCOUNTS_MANAGER', 'Accounts Manager'], ['ACCOUNTANT', 'Accountant'], ['SITE_ENGINEER', 'Site Engineer'], ['CONSTRUCTION_MANAGER', 'Construction Manager'], ['HR_MANAGER', 'HR Manager'], ['EMPLOYEE', 'Employee'], ['VENDOR_MANAGER', 'Vendor Manager'], ['CUSTOMER_SUPPORT', 'Customer Support'], ['RECEPTIONIST', 'Receptionist'], ['CUSTOMER', 'Customer'], ['ADMINISTRATOR', 'Administrator'], ['MANAGER', 'Manager'], ['RECEPTION', 'Reception']
+  ['SUPER_ADMIN', 'Super Admin'], ['DIRECTOR', 'Director'], ['ADMIN', 'Admin'], ['SALES_MANAGER', 'Sales Manager'], ['SALES_EXECUTIVE', 'Sales Executive'], ['CRM_EXECUTIVE', 'CRM Executive'], ['MARKETING_MANAGER', 'Marketing Manager'], ['ACCOUNTS_MANAGER', 'Accounts Manager'], ['ACCOUNTANT', 'Accountant'], ['LICENSING_OFFICER', 'Licensing Officer'], ['SITE_ENGINEER', 'Site Engineer'], ['CONSTRUCTION_MANAGER', 'Construction Manager'], ['HR_MANAGER', 'HR Manager'], ['EMPLOYEE', 'Employee'], ['VENDOR_MANAGER', 'Vendor Manager'], ['CUSTOMER_SUPPORT', 'Customer Support'], ['RECEPTIONIST', 'Receptionist'], ['CUSTOMER', 'Customer'], ['ADMINISTRATOR', 'Administrator'], ['MANAGER', 'Manager'], ['RECEPTION', 'Reception']
 ] as const;
 const permissions = ['dashboard.view', 'leads.view', 'leads.create', 'leads.edit', 'leads.assign', 'customers.view', 'customers.create', 'customers.edit', 'settings.manage'];
 async function main() {

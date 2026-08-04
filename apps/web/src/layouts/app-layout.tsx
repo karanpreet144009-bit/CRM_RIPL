@@ -54,11 +54,13 @@ const adminLinks: LinkItem[] = [
 ];
 const roleNames: Record<string, string> = {
   ADMINISTRATOR: 'Administrator',
+  ADMIN: 'Admin',
   MANAGER: 'Manager',
   SALES_EXECUTIVE: 'Sales Executive',
   RECEPTION: 'Reception',
   ACCOUNTANT: 'Accounts',
   ACCOUNTS_MANAGER: 'Accounts Manager',
+  LICENSING_OFFICER: 'Licensing Officer',
 };
 
 function MenuLink({ item }: { item: LinkItem }) {
@@ -80,7 +82,7 @@ function MenuLink({ item }: { item: LinkItem }) {
 export function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const isAdministrator = user?.roles.includes('ADMINISTRATOR') ?? false;
+  const isAdministrator = user?.roles.some((role) => ['ADMINISTRATOR', 'ADMIN'].includes(role)) ?? false;
   const hasExpenseAccess = user?.roles.some((role) => ['ADMINISTRATOR', 'MANAGER', 'ACCOUNTANT', 'ACCOUNTS_MANAGER'].includes(role)) ?? false;
   const roleLabel = (user?.roles ?? [])
     .map((role) => roleNames[role] ?? role.replaceAll('_', ' ').toLowerCase())
