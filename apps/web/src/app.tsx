@@ -60,14 +60,7 @@ export function App() {
             </AdminOnly>
           }
         />
-        <Route
-          path="/attendance"
-          element={
-            <EmployeeAttendanceOnly>
-              <AttendancePage />
-            </EmployeeAttendanceOnly>
-          }
-        />
+        <Route path="/attendance" element={<AttendancePage />} />
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/properties" element={<PropertiesPage />} />

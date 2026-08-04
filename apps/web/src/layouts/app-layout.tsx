@@ -90,7 +90,7 @@ export function AppLayout() {
     .map((role) => roleNames[role] ?? role.replaceAll('_', ' ').toLowerCase())
     .join(' · ');
   const visibleWorkspaceLinks = isAdministrator
-    ? workspaceLinks.filter(([path]) => path !== '/attendance' && path !== '/leave')
+    ? workspaceLinks.filter(([path]) => path !== '/leave')
     : workspaceLinks;
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">

@@ -7,7 +7,7 @@ import { AppError } from '../utils/errors.js';
 export const attendanceRouter = Router();
 const notesSchema = z.object({ notes: z.string().trim().max(500).optional().or(z.literal('')) });
 const today = () => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate()); };
-const requireAttendanceEmployee = (req: AuthRequest) => { if (req.auth?.roles.includes('ADMINISTRATOR')) throw new AppError(403, 'ATTENDANCE_EMPLOYEES_ONLY', 'Attendance marking is available to employees only'); };
+const requireAttendanceEmployee = (req: AuthRequest) => { if (req.auth?.roles.some((role) => role === 'ADMINISTRATOR' || role === 'ADMIN')) throw new AppError(403, 'ATTENDANCE_EMPLOYEES_ONLY', 'Attendance marking is available to employees only'); };
 
 attendanceRouter.use(authenticate);
 
@@ -47,7 +47,7 @@ attendanceRouter.post('/me/check-out', async (req: AuthRequest, res, next) => {
   } catch (error) { next(error); }
 });
 
-attendanceRouter.get('/', authorize('ADMINISTRATOR', 'MANAGER'), async (req, res, next) => {
+attendanceRouter.get('/', authorize('ADMINISTRATOR'), async (req, res, next) => {
   try {
     const day = z.coerce.date().optional().parse(req.query.date) ?? today();
     const data = await prisma.attendance.findMany({ where: { workDate: day }, include: { employee: true }, orderBy: { checkInAt: 'asc' } });
