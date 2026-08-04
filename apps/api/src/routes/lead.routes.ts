@@ -33,11 +33,25 @@ leadRouter.get('/', async (req: AuthRequest, res, next) => {
   } catch (error) { next(error); }
 });
 
+leadRouter.get('/duplicate-check', async (req, res, next) => {
+  try {
+    const phone = z.string().trim().min(8).max(20).parse(req.query.phone);
+    const [lead, customer] = await prisma.$transaction([
+      prisma.lead.findFirst({ where: { primaryPhone: phone, deletedAt: null }, select: { id: true } }),
+      prisma.customer.findFirst({ where: { primaryPhone: phone, deletedAt: null }, select: { id: true } }),
+    ]);
+    res.json({ success: true, data: { exists: Boolean(lead || customer) } });
+  } catch (error) { next(error); }
+});
+
 leadRouter.post('/', async (req: AuthRequest, res, next) => {
   try {
     const input = createSchema.parse(req.body);
-    const duplicate = await prisma.lead.findFirst({ where: { primaryPhone: input.primaryPhone, deletedAt: null } });
-    if (duplicate) throw new AppError(409, 'DUPLICATE_LEAD', 'An active lead already uses this phone number');
+    const [duplicateLead, duplicateCustomer] = await prisma.$transaction([
+      prisma.lead.findFirst({ where: { primaryPhone: input.primaryPhone, deletedAt: null }, select: { id: true } }),
+      prisma.customer.findFirst({ where: { primaryPhone: input.primaryPhone, deletedAt: null }, select: { id: true } }),
+    ]);
+    if (duplicateLead || duplicateCustomer) throw new AppError(409, 'DUPLICATE_LEAD', 'This phone number already exists in lead or customer records');
     const employee = await requesterEmployee(req.auth!.userId);
     const count = await prisma.lead.count();
     const lead = await prisma.$transaction(async tx => {
