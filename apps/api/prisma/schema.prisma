@@ -35,6 +35,10 @@ enum LeadPriority {
 
 enum PropertyType {
   FLAT
+  BHK_1
+  BHK_2
+  BHK_3
+  BHK_4
   PLOT
   SHOP
   OFFICE

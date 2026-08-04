@@ -26,9 +26,9 @@ const propertyStatus = z.enum([
 const schema = z.object({
   projectName: z.string().trim().min(2),
   projectCode: z.string().trim().toUpperCase().min(2).max(20),
-  location: z.string().trim().min(1).max(80),
+  location: z.string().trim().max(80).optional(),
   unitNumber: z.string().trim().min(1).max(30),
-  type: z.enum(['FLAT', 'SHOP', 'OFFICE']),
+  type: z.enum(['FLAT', 'BHK_1', 'BHK_2', 'BHK_3', 'BHK_4', 'SHOP', 'OFFICE']),
   basePrice: z.coerce.number().positive(),
   finalPrice: z.coerce.number().positive(),
   status: propertyStatus.default('AVAILABLE'),
@@ -43,7 +43,7 @@ const discussionSchema = z.object({
 const reasonSchema = z.object({ reason: z.string().trim().min(3).max(500) });
 const statusUpdateSchema = z.object({ status: propertyStatus, customerName: z.string().trim().min(2).max(120).optional(), customerPhone: z.string().trim().min(8).max(20).optional() });
 const talkCustomerSchema = z.object({ customerName: z.string().trim().min(2).max(120).nullable(), customerPhone: z.string().trim().min(8).max(20).nullable().optional() });
-const updateSchema = z.object({ projectName: z.string().trim().min(2).optional(), projectCode: z.string().trim().toUpperCase().min(2).max(20).optional(), location: z.string().trim().min(1).max(80).optional(), unitNumber: z.string().trim().min(1).max(30).optional(), type: z.enum(['FLAT', 'SHOP', 'OFFICE']).optional(), basePrice: z.coerce.number().positive().optional(), finalPrice: z.coerce.number().positive().optional(), dealingExecutiveId: z.string().uuid().nullable().optional() }).refine((value) => Object.keys(value).length > 0, 'At least one field is required');
+const updateSchema = z.object({ projectName: z.string().trim().min(2).optional(), projectCode: z.string().trim().toUpperCase().min(2).max(20).optional(), location: z.string().trim().max(80).optional(), unitNumber: z.string().trim().min(1).max(30).optional(), type: z.enum(['FLAT', 'BHK_1', 'BHK_2', 'BHK_3', 'BHK_4', 'SHOP', 'OFFICE']).optional(), basePrice: z.coerce.number().positive().optional(), finalPrice: z.coerce.number().positive().optional(), dealingExecutiveId: z.string().uuid().nullable().optional() }).refine((value) => Object.keys(value).length > 0, 'At least one field is required');
 const transferSchema = z.object({
   employeeId: z.string().uuid(),
   reason: z.string().trim().min(3).max(500),
@@ -159,8 +159,8 @@ propertyRouter.post(
       const input = schema.parse(req.body);
       const project = await prisma.project.upsert({
         where: { code: input.projectCode },
-        update: { name: input.projectName, location: input.location },
-        create: { code: input.projectCode, name: input.projectName, location: input.location, status: 'ACTIVE' },
+        update: { name: input.projectName, ...(input.location ? { location: input.location } : {}) },
+        create: { code: input.projectCode, name: input.projectName, location: input.location || 'Not specified', status: 'ACTIVE' },
       });
       const existing = await prisma.property.findUnique({
         where: { projectId_unitNumber: { projectId: project.id, unitNumber: input.unitNumber } },
