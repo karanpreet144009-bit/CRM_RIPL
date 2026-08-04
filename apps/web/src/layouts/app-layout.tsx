@@ -153,15 +153,26 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
-      <button
-        type="button"
-        onClick={() => navigate('/ai-chatbot')}
-        title="Open RIPL AI assistant"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/30 transition hover:scale-105 hover:bg-[#0d2d49]"
-      >
-        <Bot size={20} />
-        AI assistant
-      </button>
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/calculator')}
+          title="Open employee calculator"
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-navy shadow-lg shadow-slate-900/15 transition hover:scale-105 hover:bg-slate-50"
+        >
+          <Calculator size={20} />
+          Calculator
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/ai-chatbot')}
+          title="Open RIPL AI assistant"
+          className="flex items-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/30 transition hover:scale-105 hover:bg-[#0d2d49]"
+        >
+          <Bot size={20} />
+          AI assistant
+        </button>
+      </div>
     </div>
   );
 }
