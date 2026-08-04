@@ -5,6 +5,7 @@ import {
   Bot,
   Building2,
   CalendarCheck,
+  Calculator,
   CheckCircle2,
   Clock3,
   CreditCard,
@@ -23,6 +24,7 @@ import { useAuth } from '../contexts/auth-context';
 type LinkItem = readonly [string, typeof Home, string];
 const workspaceLinks: LinkItem[] = [
   ['/', Home, 'Dashboard'],
+  ['/calculator', Calculator, 'Calculator'],
   ['/sales-dashboard', BarChart3, 'Sales dashboard'],
   ['/attendance', Clock3, 'Attendance'],
   ['/leads', Users, 'Leads'],
