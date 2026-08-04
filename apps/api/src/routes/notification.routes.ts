@@ -30,6 +30,11 @@ async function ensureOperationalNotifications() {
     if (booking.documents.length === 0) await prisma.notification.upsert({ where: { dedupeKey: `document-pending-${booking.id}` }, update: {}, create: { dedupeKey: `document-pending-${booking.id}`, type: 'DOCUMENT_PENDING', title: 'Booking document pending', message: `Upload agreement/KYC documents for ${booking.referenceNumber} (${booking.customer.fullName}).`, link: '/documents' } });
     if (booking.paymentStatus === 'PAID') await prisma.notification.upsert({ where: { dedupeKey: `possession-update-${booking.id}` }, update: {}, create: { dedupeKey: `possession-update-${booking.id}`, type: 'POSSESSION_UPDATE', title: 'Possession follow-up', message: `${booking.referenceNumber} is fully paid. Prepare possession and handover update for ${booking.customer.fullName}.`, link: '/bookings' } });
   }
+  const dailyTasks = await prisma.dailyTask.findMany({ where: { status: { in: ['PENDING', 'IN_PROGRESS'] }, dueDate: { lte: now } }, include: { employee: { select: { userId: true } } }, take: 100 });
+  for (const dailyTask of dailyTasks) {
+    if (!dailyTask.employee.userId) continue;
+    await prisma.notification.upsert({ where: { dedupeKey: `daily-task-${dailyTask.id}` }, update: {}, create: { dedupeKey: `daily-task-${dailyTask.id}`, userId: dailyTask.employee.userId, type: 'DAILY_TASK', title: 'New daily task assigned', message: `Task: ${dailyTask.title}. Due ${dailyTask.dueDate.toLocaleDateString('en-IN')}.`, link: '/' } });
+  }
 }
 notificationRouter.use(authenticate);
 notificationRouter.get('/', async (req: AuthRequest, res, next) => { try { await ensureOperationalNotifications(); const data = await prisma.notification.findMany({ where: { OR: [{ userId: req.auth!.userId }, { userId: null }] }, orderBy: { createdAt: 'desc' }, take: 100 }); res.json({ success: true, data }); } catch (error) { next(error); } });

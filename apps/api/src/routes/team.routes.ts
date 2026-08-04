@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize, type AuthRequest } from '../middleware/auth.js';
+import { AppError } from '../utils/errors.js';
 
 export const teamRouter = Router();
 const task = z.object({ employeeId: z.string().uuid(), title: z.string().trim().min(2).max(240), dueDate: z.coerce.date(), priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'), notes: z.string().max(1000).optional() });
@@ -11,7 +12,25 @@ const incentive = z.object({ employeeId: z.string().uuid(), period: z.string().r
 const calculator = z.object({ bookingRate: z.coerce.number().min(0).max(100).default(1), paymentRate: z.coerce.number().min(0).max(100).default(0.5) });
 teamRouter.use(authenticate, authorize('ADMINISTRATOR', 'MANAGER'));
 teamRouter.get('/overview', async (_req, res, next) => { try { const [employees, attendance, tasks, leaves, performance, incentives] = await Promise.all([prisma.employee.findMany({ where: { deletedAt: null }, include: { user: { include: { userRoles: { include: { role: true } } } } } }), prisma.attendance.findMany({ where: { workDate: new Date(new Date().setHours(0, 0, 0, 0)) }, include: { employee: true } }), prisma.dailyTask.findMany({ include: { employee: true }, orderBy: { dueDate: 'asc' }, take: 100 }), prisma.leaveRequest.findMany({ include: { employee: true }, orderBy: { createdAt: 'desc' }, take: 100 }), prisma.performanceMetric.findMany({ include: { employee: true }, orderBy: { period: 'desc' }, take: 100 }), prisma.incentive.findMany({ include: { employee: true }, orderBy: { createdAt: 'desc' }, take: 100 })]); res.json({ success: true, data: { employees: employees.map(e => ({ id: e.id, fullName: e.fullName, department: e.department, designation: e.designation, roles: e.user.userRoles.map(r => r.role.code) })), attendance, tasks, leaves, performance, incentives } }); } catch (error) { next(error); } });
-teamRouter.post('/tasks', async (req: AuthRequest, res, next) => { try { const data = await prisma.dailyTask.create({ data: task.parse(req.body) }); await prisma.auditLog.create({ data: { userId: req.auth!.userId, action: 'CREATE', entityType: 'DAILY_TASK', entityId: data.id, newValues: req.body } }); res.status(201).json({ success: true, data }); } catch (error) { next(error); } });
+teamRouter.post('/tasks', async (req: AuthRequest, res, next) => { try {
+  const input = task.parse(req.body);
+  const employee = await prisma.employee.findFirst({ where: { id: input.employeeId, deletedAt: null }, select: { userId: true } });
+  if (!employee) throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found');
+  const data = await prisma.$transaction(async (tx) => {
+    const created = await tx.dailyTask.create({ data: input });
+    if (employee.userId) await tx.notification.create({ data: {
+      dedupeKey: `daily-task-${created.id}`,
+      userId: employee.userId,
+      type: 'DAILY_TASK',
+      title: 'New daily task assigned',
+      message: `Task: ${created.title}. Due ${created.dueDate.toLocaleDateString('en-IN')}.`,
+      link: '/'
+    } });
+    await tx.auditLog.create({ data: { userId: req.auth!.userId, action: 'CREATE', entityType: 'DAILY_TASK', entityId: created.id, newValues: input } });
+    return created;
+  });
+  res.status(201).json({ success: true, data });
+} catch (error) { next(error); } });
 teamRouter.patch('/tasks/:id', async (req, res, next) => { try { const data = await prisma.dailyTask.update({ where: { id: z.string().uuid().parse(req.params.id) }, data: z.object({ status: z.enum(['PENDING', 'IN_PROGRESS', 'DONE']) }).parse(req.body) }); res.json({ success: true, data }); } catch (error) { next(error); } });
 teamRouter.post('/leaves', async (req: AuthRequest, res, next) => { try { const data = await prisma.leaveRequest.create({ data: leave.parse(req.body) }); await prisma.auditLog.create({ data: { userId: req.auth!.userId, action: 'CREATE', entityType: 'LEAVE_REQUEST', entityId: data.id, newValues: req.body } }); res.status(201).json({ success: true, data }); } catch (error) { next(error); } });
 teamRouter.patch('/leaves/:id', async (req: AuthRequest, res, next) => { try { const status = z.object({ status: z.enum(['APPROVED', 'REJECTED']) }).parse(req.body).status; const data = await prisma.leaveRequest.update({ where: { id: z.string().uuid().parse(req.params.id) }, data: { status, reviewedById: req.auth!.userId, reviewedAt: new Date() } }); res.json({ success: true, data }); } catch (error) { next(error); } });
