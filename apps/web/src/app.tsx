@@ -16,6 +16,7 @@ import { ExportsPage } from './pages/exports-page';
 import { ImportsPage } from './pages/imports-page';
 import { ActivityHistoryPage } from './pages/activity-history-page';
 import { AvailabilityBoardPage } from './pages/availability-board-page';
+import { InventoryMapPage } from './pages/inventory-map-page';
 import { NotificationsPage } from './pages/notifications-page';
 import { SettingsPage } from './pages/settings-page';
 import { SiteVisitsPage } from './pages/site-visits-page';
@@ -65,6 +66,7 @@ export function App() {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/properties" element={<PropertiesPage />} />
         <Route path="/availability-board" element={<AvailabilityBoardPage />} />
+        <Route path="/inventory-map" element={<InventoryMapPage />} />
         <Route path="/follow-ups" element={<FollowUpsPage />} />
         <Route path="/site-visits" element={<SiteVisitsPage />} />
         <Route path="/bookings" element={<BookingsPage />} />

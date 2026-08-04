@@ -33,6 +33,7 @@ const workspaceLinks: LinkItem[] = [
   ['/customers', Users, 'Customers'],
   ['/properties', Building2, 'Properties'],
   ['/availability-board', LayoutDashboard, 'Availability board'],
+  ['/inventory-map', LayoutDashboard, 'Inventory map'],
   ['/follow-ups', CalendarCheck, 'Follow-ups'],
   ['/site-visits', CalendarCheck, 'Site visits'],
   ['/bookings', FileText, 'Bookings'],
