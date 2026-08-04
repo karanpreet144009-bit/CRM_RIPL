@@ -55,6 +55,8 @@ const roleNames: Record<string, string> = {
   MANAGER: 'Manager',
   SALES_EXECUTIVE: 'Sales Executive',
   RECEPTION: 'Reception',
+  ACCOUNTANT: 'Accounts',
+  ACCOUNTS_MANAGER: 'Accounts Manager',
 };
 
 function MenuLink({ item }: { item: LinkItem }) {
@@ -77,6 +79,7 @@ export function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isAdministrator = user?.roles.includes('ADMINISTRATOR') ?? false;
+  const hasExpenseAccess = user?.roles.some((role) => ['ADMINISTRATOR', 'MANAGER', 'ACCOUNTANT', 'ACCOUNTS_MANAGER'].includes(role)) ?? false;
   const roleLabel = (user?.roles ?? [])
     .map((role) => roleNames[role] ?? role.replaceAll('_', ' ').toLowerCase())
     .join(' · ');
@@ -113,6 +116,13 @@ export function AppLayout() {
                   <MenuLink item={item} key={item[0]} />
                 ))}
               </div>
+            </>
+          )}
+          {!isAdministrator && hasExpenseAccess && (
+            <>
+              <div className="my-5 border-t border-white/10" />
+              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Accounts</p>
+              <div className="space-y-1"><MenuLink item={['/expenses', CreditCard, 'Expense management']} /></div>
             </>
           )}
         </nav>

@@ -5,7 +5,7 @@ import { UserPlus, Users } from 'lucide-react';
 import { api } from '../lib/api';
 
 type Employee = { id: string; fullName: string; email: string; phone: string; department: string; designation: string; status: 'ACTIVE' | 'INACTIVE' | 'LOCKED'; roles: string[] };
-type EmployeeRole = 'MANAGER' | 'SALES_EXECUTIVE' | 'RECEPTION';
+type EmployeeRole = 'MANAGER' | 'SALES_EXECUTIVE' | 'RECEPTION' | 'ACCOUNTANT';
 type Form = { fullName: string; email: string; recoveryEmail: string; phone: string; department: string; designation: string; role: EmployeeRole; temporaryPassword: string };
 type ApiError = { error?: { message?: string; details?: { fieldErrors?: Record<string, string[]> } } };
 
@@ -53,7 +53,7 @@ export function EmployeesPage() {
         {([['fullName', 'Full name', 'text'], ['email', 'Work email', 'email'], ['phone', 'Phone', 'tel'], ['department', 'Department', 'text'], ['designation', 'Designation', 'text']] as const).map(([key, label, type]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<input required type={type} value={form[key]} onChange={(event) => update(key, event.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2.5" /></label>)}
         <label className="text-sm font-medium text-slate-700">Recovery email <span className="font-normal text-slate-400">(optional)</span><input type="email" value={form.recoveryEmail} onChange={(event) => update('recoveryEmail', event.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2.5" /></label>
         <label className="text-sm font-medium text-slate-700">Temporary password<input required minLength={6} autoComplete="new-password" type="password" value={form.temporaryPassword} onChange={(event) => update('temporaryPassword', event.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2.5" /><span className="mt-1 block text-xs font-normal text-slate-500">At least 6 characters. The employee should change it after first sign-in.</span></label>
-        <label className="text-sm font-medium text-slate-700">Role<select value={form.role} onChange={(event) => update('role', event.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2.5"><option value="SALES_EXECUTIVE">Sales Executive</option><option value="MANAGER">Manager</option><option value="RECEPTION">Reception</option></select></label>
+        <label className="text-sm font-medium text-slate-700">Role<select value={form.role} onChange={(event) => update('role', event.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2.5"><option value="SALES_EXECUTIVE">Sales Executive</option><option value="MANAGER">Manager</option><option value="RECEPTION">Reception</option><option value="ACCOUNTANT">Accounts</option></select></label>
       </div>
       <div className="mt-5 flex gap-3"><button disabled={create.isPending} className="rounded bg-navy px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60">{create.isPending ? 'Creating…' : 'Create account'}</button><button type="button" onClick={() => setOpen(false)} className="rounded border px-4 py-2.5 text-sm">Cancel</button></div>
     </form>}
