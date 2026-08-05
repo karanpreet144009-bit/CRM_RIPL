@@ -13,7 +13,7 @@ async function notifyAdministratorsOfAttendance(employeeName: string, attendance
   const actionLabel = action === 'CHECK_IN' ? 'checked in' : 'checked out';
   await Promise.all(administrators.map((administrator) => prisma.notification.upsert({
     where: { dedupeKey: `attendance-${action.toLowerCase()}-${attendanceId}-${administrator.id}` }, update: {},
-    create: { dedupeKey: `attendance-${action.toLowerCase()}-${attendanceId}-${administrator.id}`, userId: administrator.id, type: 'ATTENDANCE_UPDATE', title: `Employee ${action === 'CHECK_IN' ? 'check-in' : 'check-out'}`, message: `${employeeName} ${actionLabel} at ${occurredAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.`, link: '/attendance' },
+    create: { dedupeKey: `attendance-${action.toLowerCase()}-${attendanceId}-${administrator.id}`, userId: administrator.id, type: 'ATTENDANCE_UPDATE', title: `Employee ${action === 'CHECK_IN' ? 'check-in' : 'check-out'}`, message: `${employeeName} ${actionLabel} at ${occurredAt.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}.`, link: '/attendance' },
   })));
 }
 
