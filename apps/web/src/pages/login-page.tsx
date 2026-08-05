@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/auth-context';
 import { useState } from 'react';
@@ -12,7 +12,7 @@ const schema = z.object({
 });
 type Form = z.infer<typeof schema>;
 export function LoginPage() {
-  const { login } = useAuth(),
+  const { login, user, ready } = useAuth(),
     navigate = useNavigate(),
     [error, setError] = useState(''),
     [showPassword, setShowPassword] = useState(false);
@@ -30,6 +30,8 @@ export function LoginPage() {
       setError('Unable to sign in. Check your credentials or contact an administrator.');
     }
   };
+  if (!ready) return <main className="grid min-h-screen place-items-center bg-slate-100 text-sm text-slate-500">Restoring your secure session...</main>;
+  if (user) return <Navigate to="/" replace />;
   return (
     <main className="min-h-screen bg-slate-100 grid place-items-center p-6">
       <form

@@ -34,7 +34,8 @@ import { AiChatbotPage } from './pages/ai-chatbot-page';
 import { CalculatorPage } from './pages/calculator-page';
 import { LeavePage } from './pages/leave-page';
 function Protected() {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
+  if (!ready) return <div className="grid min-h-screen place-items-center bg-slate-50 text-sm text-slate-500">Restoring your secure session...</div>;
   return user ? <AppLayout /> : <Navigate to="/login" replace />;
 }
 function AdminOnly({ children }: { children: ReactNode }) {
